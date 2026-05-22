@@ -9,6 +9,10 @@ interface AlbionServerStatus {
   message?: string;
 }
 
+type SendableTextChannel = TextBasedChannel & {
+  send: (options: { content: string }) => Promise<unknown>;
+};
+
 @Injectable()
 export class SchedulerService {
   private readonly logger = new Logger(SchedulerService.name);
@@ -81,7 +85,8 @@ export class SchedulerService {
       if (
         !channel ||
         !channel.isTextBased() ||
-        ('isDMBased' in channel && channel.isDMBased())
+        ('isDMBased' in channel && channel.isDMBased()) ||
+        !this.canSendMessage(channel)
       ) {
         this.logger.warn(
           `Canal ${channelId} no es de texto utilizable para notificar estado de Albion.`,
@@ -101,7 +106,7 @@ export class SchedulerService {
               ? `<@&${mention}> `
               : '';
 
-      await (channel as TextBasedChannel).send({
+      await channel.send({
         content: `${mentionText}🟢 Albion Online está en línea.\n${message ?? 'El servidor ya acepta conexiones.'}`,
       });
       this.logger.log('Notificación enviada: Albion online');
@@ -111,5 +116,11 @@ export class SchedulerService {
         error as Error,
       );
     }
+  }
+
+  private canSendMessage(
+    channel: TextBasedChannel,
+  ): channel is SendableTextChannel {
+    return 'send' in channel && typeof channel.send === 'function';
   }
 }
