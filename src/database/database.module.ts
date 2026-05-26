@@ -8,17 +8,15 @@ import { MongooseModule } from '@nestjs/mongoose';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const username = configService.getOrThrow<string>('MONGO_USERNAME');
-        const password = configService.getOrThrow<string>('MONGO_PASSWORD');
-        const port = configService.getOrThrow<string>('MONGO_PORT');
-        const database = configService.getOrThrow<string>('MONGO_DATABASE');
-        const env = configService.get<string>('NODE_ENV', 'development');
-        const connection = configService.getOrThrow<string>('MONGO_URI');
+        const uri = configService.get<string>('MONGO_URI');
+        if (!uri) {
+          throw new Error('Missing MONGO_URI. DatabaseModule is disabled.');
+        }
 
-        const uri =
-          env === 'development'
-            ? `${connection}://${username}:${port}`
-            : `${connection}://${username}:${password}@${database}.48zjsbj.mongodb.net/?retryWrites=true&w=majority`;
+        const database = configService.get<string>(
+          'MONGO_DATABASE',
+          'albion-guild-system',
+        );
 
         return {
           uri,

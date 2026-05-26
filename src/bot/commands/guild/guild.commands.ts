@@ -66,13 +66,13 @@ export class GuildCommands {
 
   @SlashCommand({
     name: 'crear-evento',
-    description: 'Crea un CTA y abre el hilo de inscripciones',
+    description: 'Crea un CTA con inscripción interactiva',
   })
   public async crearEvento(
     @Context() [interaction]: SlashCommandContext,
     @Options() options: CrearEventoDto,
   ): Promise<void> {
-    const { lugar, dia, horaUtc } = options;
+    const { lugar, dia, horaUtc, composicion } = options;
     const channel = interaction.channel;
 
     if (!channel || !channel.isTextBased() || channel.isDMBased()) {
@@ -104,17 +104,19 @@ export class GuildCommands {
     }
 
     try {
-      const { threadName } = await this.eventSignupService.createEventMessage(
+      const { eventName } = await this.eventSignupService.createEventMessage(
         channel as TextChannel | NewsChannel,
         parsed,
+        composicion,
+        interaction.user.id,
       );
 
       await interaction.reply({
-        content: `Evento creado ✅. Hilo abierto: **${threadName}**`,
+        content: `Evento creado ✅. Mensaje publicado: **${eventName}**`,
         ephemeral: true,
       });
       this.logger.log(
-        `Evento creado por slash command en canal ${channel.id} | thread ${threadName}`,
+        `Evento creado por slash command en canal ${channel.id} | evento ${eventName}`,
       );
     } catch (error) {
       this.logger.error(
@@ -123,7 +125,7 @@ export class GuildCommands {
       );
       await interaction.reply({
         content:
-          'No pude crear el evento. Verificá que tengo permisos para enviar mensajes y crear hilos en este canal.',
+          'No pude crear el evento. Verificá que tengo permisos para enviar mensajes en este canal.',
         ephemeral: true,
       });
     }

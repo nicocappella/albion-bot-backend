@@ -29,6 +29,7 @@ export class CoreCommands {
     const helpLines = [
       '`/ping` - Comprueba si el bot está vivo.',
       '`/guild-info` - Muestra información general de la guild.',
+      '`/sync-emojis-albion` - Crea o reemplaza los emojis de armas del servidor.',
     ].join('\n');
 
     await interaction.reply({

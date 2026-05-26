@@ -8,6 +8,7 @@ import {
   type NewsChannel,
   type TextChannel,
 } from 'discord.js';
+import { DEFAULT_EVENT_COMPOSITION_KEY } from '../../../events/event-composition';
 import { EventSignupService } from './event-signup.service';
 
 @Injectable()
@@ -76,7 +77,8 @@ export class EventSignupListener {
           channelId: starter.channelId,
           lugar: 'CTA',
           epoch: Math.floor(starter.createdTimestamp / 1000) || 0,
-        } as any);
+          compositionKey: DEFAULT_EVENT_COMPOSITION_KEY,
+        });
       }
 
       const record = this.signupService.getThreadById(threadId)!;
@@ -105,18 +107,22 @@ export class EventSignupListener {
     }
 
     try {
-      const { threadName, threadId } =
-        await this.signupService.createEventMessage(channel, parsed);
+      const { eventName, postId } = await this.signupService.createEventMessage(
+        channel,
+        parsed,
+        undefined,
+        message.author.id,
+      );
       await message.reply(
-        `Evento creado ✅. Revisa el nuevo thread **${threadName}**.`,
+        `Evento creado ✅. Revisa el mensaje interactivo **${eventName}**.`,
       );
       this.logger.log(
-        `Evento creado por mensaje: thread ${threadId} en canal ${channel.id}`,
+        `Evento creado por mensaje: post ${postId} en canal ${channel.id}`,
       );
     } catch (error) {
       this.logger.error('Error creando evento', error as Error);
       await message.reply(
-        'Algo salió mal al crear el evento. Verificá que tengo permisos para crear hilos.',
+        'Algo salió mal al crear el evento. Verificá que tengo permisos para enviar mensajes.',
       );
     }
   }
@@ -133,14 +139,14 @@ export class EventSignupListener {
   }
 
   private extractChannelId(msg: Message): string | null {
-    const direct: string | undefined = (msg as any).channelId ?? msg.channelId;
+    const direct = msg.channelId;
     if (typeof direct === 'string' && direct.length > 0) return direct;
 
-    const viaChannel = (msg as any).channel?.id as string | undefined;
+    const viaChannel = msg.channel?.id;
     if (typeof viaChannel === 'string' && viaChannel.length > 0)
       return viaChannel;
 
-    const url: string | undefined = (msg as any).url ?? undefined;
+    const url = msg.url;
     if (typeof url === 'string') {
       const m = url.match(/\/channels\/(\d+)\/(\d+)\/(\d+)/);
       if (m && m[2]) return m[2];

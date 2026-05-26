@@ -6,10 +6,13 @@ import { IntentsBitField, Partials } from 'discord.js';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { existsSync } from 'fs';
 import { join } from 'path';
+import { config as loadEnv } from 'dotenv';
 import { BotModule } from './bot/bot.module';
 import { MembersModule } from './members/members.module';
 import { EventsModule } from './events/events.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
+import { DatabaseModule } from './database/database.module';
+import { UsersModule } from './users/users.module';
 
 const env = process.env.NODE_ENV ?? 'development';
 const envBasePath = join(process.cwd(), 'src', 'config', 'envs');
@@ -19,6 +22,16 @@ const envCandidates = [
   join(process.cwd(), '.env'),
 ].filter((filePath) => existsSync(filePath));
 const envFilePath = envCandidates.length > 0 ? envCandidates : undefined;
+
+if (envFilePath) {
+  for (const filePath of Array.isArray(envFilePath)
+    ? envFilePath
+    : [envFilePath]) {
+    loadEnv({ path: filePath, override: false });
+  }
+}
+
+const databaseEnabled = Boolean(process.env.MONGO_URI);
 
 @Module({
   imports: [
@@ -59,6 +72,7 @@ const envFilePath = envCandidates.length > 0 ? envCandidates : undefined;
       },
     }),
     SchedulerModule,
+    ...(databaseEnabled ? [DatabaseModule, UsersModule] : []),
     MembersModule,
     EventsModule,
     BotModule,

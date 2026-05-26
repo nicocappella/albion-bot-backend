@@ -1,5 +1,6 @@
 import { StringOption } from 'necord';
 import baseMaps from '@/../base.maps.json';
+import { EVENT_COMPOSITION_CHOICES } from '../../../../events/event-composition';
 
 const EVENT_LOCATION_CHOICES = baseMaps.map((m) => ({
   name: m.name,
@@ -21,6 +22,14 @@ export class CrearEventoDto {
     required: true,
   })
   horaUtc!: string;
+
+  @StringOption({
+    name: 'composicion',
+    description: 'Composición base del evento',
+    required: true,
+    choices: EVENT_COMPOSITION_CHOICES,
+  })
+  composicion!: string;
 
   @StringOption({
     name: 'dia',
