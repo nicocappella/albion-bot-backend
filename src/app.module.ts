@@ -13,6 +13,10 @@ import { EventsModule } from './events/events.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { DatabaseModule } from './database/database.module';
 import { UsersModule } from './users/users.module';
+import { AlbionItemModule } from './items/albion-item.module';
+import { BuildModule } from './builds/build.module';
+import { CompositionsModule } from './compositions/compositions.module';
+import { AuthModule } from './auth/auth.module';
 
 const env = process.env.NODE_ENV ?? 'development';
 const envBasePath = join(process.cwd(), 'src', 'config', 'envs');
@@ -72,7 +76,16 @@ const databaseEnabled = Boolean(process.env.MONGO_URI);
       },
     }),
     SchedulerModule,
-    ...(databaseEnabled ? [DatabaseModule, UsersModule] : []),
+    ...(databaseEnabled
+      ? [
+          DatabaseModule,
+          UsersModule,
+          AuthModule,
+          AlbionItemModule,
+          BuildModule,
+          CompositionsModule,
+        ]
+      : []),
     MembersModule,
     EventsModule,
     BotModule,

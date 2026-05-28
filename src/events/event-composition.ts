@@ -1,3 +1,22 @@
+export type BuildItemSlot =
+  | 'weapon'
+  | 'offhand'
+  | 'head'
+  | 'chest'
+  | 'shoes'
+  | 'cape'
+  | 'food'
+  | 'potion'
+  | 'mount';
+
+export interface BuildItem {
+  /** Nombre para mostrar (ej. "Maza 1h", "Judi Armor") */
+  name: string;
+  /** ID único en la API de Albion (ej. "T8_MAIN_MACE") — para imagen en render API */
+  itemUniqueName?: string;
+  slot?: BuildItemSlot;
+}
+
 export interface EventCompositionEntry {
   key: string;
   role: string;
@@ -6,13 +25,19 @@ export interface EventCompositionEntry {
   label?: string;
   emoji?: string;
   emojiKey?: string;
-  items?: string[];
+  /**
+   * Referencia a un Build en la DB. Cuando está presente, buildItems se hidrata
+   * automáticamente desde ese Build + catálogo de AlbionItems.
+   */
+  buildKey?: string;
+  /** Items estructurados con soporte de imágenes via render API de Albion */
+  buildItems?: BuildItem[];
 }
 
 export interface EventComposition {
   key: string;
   name: string;
-  description: string;
+  description?: string;
   entries: EventCompositionEntry[];
 }
 
@@ -219,12 +244,32 @@ export const BASE_EVENT_COMPOSITIONS: EventComposition[] = [
         emoji: '🛡️',
         emojiKey: 'incubus',
         capacity: 1,
-        items: [
-          'Incubo',
-          'Judi Armor',
-          'Martlock Cape',
-          'Gigantify Potion',
-          'Beef Stew',
+        buildItems: [
+          {
+            name: 'Incubo',
+            itemUniqueName: 'T8_MAIN_MACE_HELL',
+            slot: 'weapon',
+          },
+          {
+            name: 'Judi Armor',
+            itemUniqueName: 'T8_ARMOR_PLATE_KEEPER',
+            slot: 'chest',
+          },
+          {
+            name: 'Martlock Cape',
+            itemUniqueName: 'T8_CAPEITEM_FW_MARTLOCK',
+            slot: 'cape',
+          },
+          {
+            name: 'Gigantify Potion',
+            itemUniqueName: 'T8_POTION_REVIVE',
+            slot: 'potion',
+          },
+          {
+            name: 'Beef Stew',
+            itemUniqueName: 'T8_MEAL_STEW',
+            slot: 'food',
+          },
         ],
       },
       {
@@ -235,12 +280,32 @@ export const BASE_EVENT_COMPOSITIONS: EventComposition[] = [
         emoji: '🔥',
         emojiKey: 'blazing',
         capacity: 1,
-        items: [
-          'Flamigero',
-          'Cleric Robe',
-          'Morgana Cape',
-          'Resistance Potion',
-          'Beef Stew',
+        buildItems: [
+          {
+            name: 'Flamigero',
+            itemUniqueName: 'T8_2H_FIRESTAFF_HELL',
+            slot: 'weapon',
+          },
+          {
+            name: 'Cleric Robe',
+            itemUniqueName: 'T8_ARMOR_CLOTH_SET2',
+            slot: 'chest',
+          },
+          {
+            name: 'Morgana Cape',
+            itemUniqueName: 'T8_CAPEITEM_MORGANA',
+            slot: 'cape',
+          },
+          {
+            name: 'Resistance Potion',
+            itemUniqueName: 'T8_POTION_STONESKIN',
+            slot: 'potion',
+          },
+          {
+            name: 'Beef Stew',
+            itemUniqueName: 'T8_MEAL_STEW',
+            slot: 'food',
+          },
         ],
       },
       {
@@ -251,12 +316,32 @@ export const BASE_EVENT_COMPOSITIONS: EventComposition[] = [
         emoji: '💚',
         emojiKey: 'hallowfall',
         capacity: 1,
-        items: [
-          'Santificador',
-          'Cleric Robe',
-          'Lymhurst Cape',
-          'Energy Potion',
-          'Omelette',
+        buildItems: [
+          {
+            name: 'Santificador',
+            itemUniqueName: 'T8_MAIN_HOLYSTAFF_AVALON',
+            slot: 'weapon',
+          },
+          {
+            name: 'Cleric Robe',
+            itemUniqueName: 'T8_ARMOR_CLOTH_SET2',
+            slot: 'chest',
+          },
+          {
+            name: 'Lymhurst Cape',
+            itemUniqueName: 'T8_CAPEITEM_FW_LYMHURST',
+            slot: 'cape',
+          },
+          {
+            name: 'Energy Potion',
+            itemUniqueName: 'T8_POTION_ENERGY',
+            slot: 'potion',
+          },
+          {
+            name: 'Omelette',
+            itemUniqueName: 'T8_MEAL_OMELETTE',
+            slot: 'food',
+          },
         ],
       },
       {
@@ -267,12 +352,32 @@ export const BASE_EVENT_COMPOSITIONS: EventComposition[] = [
         emoji: '☠️',
         emojiKey: 'shadowcaller',
         capacity: 1,
-        items: [
-          'Shadowcaller',
-          'Hellion Jacket',
-          'Thetford Cape',
-          'Poison Potion',
-          'Beef Stew',
+        buildItems: [
+          {
+            name: 'Shadowcaller',
+            itemUniqueName: 'T8_MAIN_CURSEDSTAFF_AVALON',
+            slot: 'weapon',
+          },
+          {
+            name: 'Hellion Jacket',
+            itemUniqueName: 'T8_ARMOR_LEATHER_HELL',
+            slot: 'chest',
+          },
+          {
+            name: 'Thetford Cape',
+            itemUniqueName: 'T8_CAPEITEM_FW_THETFORD',
+            slot: 'cape',
+          },
+          {
+            name: 'Poison Potion',
+            itemUniqueName: 'T8_POTION_COOLDOWN',
+            slot: 'potion',
+          },
+          {
+            name: 'Beef Stew',
+            itemUniqueName: 'T8_MEAL_STEW',
+            slot: 'food',
+          },
         ],
       },
       {
@@ -283,12 +388,32 @@ export const BASE_EVENT_COMPOSITIONS: EventComposition[] = [
         emoji: '🏹',
         emojiKey: 'mistpiercer',
         capacity: 3,
-        items: [
-          'Perforanieblas',
-          'Cleric Robe',
-          'Bridgewatch Cape',
-          'Resistance Potion',
-          'Beef Stew',
+        buildItems: [
+          {
+            name: 'Perforanieblas',
+            itemUniqueName: 'T8_2H_BOW_AVALON',
+            slot: 'weapon',
+          },
+          {
+            name: 'Cleric Robe',
+            itemUniqueName: 'T8_ARMOR_CLOTH_SET2',
+            slot: 'chest',
+          },
+          {
+            name: 'Bridgewatch Cape',
+            itemUniqueName: 'T8_CAPEITEM_FW_BRIDGEWATCH',
+            slot: 'cape',
+          },
+          {
+            name: 'Resistance Potion',
+            itemUniqueName: 'T8_POTION_STONESKIN',
+            slot: 'potion',
+          },
+          {
+            name: 'Beef Stew',
+            itemUniqueName: 'T8_MEAL_STEW',
+            slot: 'food',
+          },
         ],
       },
     ],

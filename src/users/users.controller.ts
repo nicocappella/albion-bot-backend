@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { FindUsersQueryDto } from './dto/find-users-query.dto';
 import { UserResponse, UsersService } from './users.service';
 
 @Controller('users')
@@ -23,8 +24,8 @@ export class UsersController {
   }
 
   @Get()
-  findAll(@Query('search') search?: string): Promise<UserResponse[]> {
-    return this.usersService.findAll(search);
+  findAll(@Query() query: FindUsersQueryDto): Promise<UserResponse[]> {
+    return this.usersService.findAll(query.search);
   }
 
   @Get(':id')

@@ -14,6 +14,7 @@ import {
 } from 'discord.js';
 import { EventsService } from '../../../events/events.service';
 import type {
+  BuildItem,
   EventComposition,
   EventCompositionEntry,
 } from '../../../events/event-composition';
@@ -22,6 +23,26 @@ import {
   parseEventoArgsUTC,
   type EventCommandArgs,
 } from './event-signup.parser';
+
+const ROLE_COLORS: Record<string, number> = {
+  Tanque: 0x3498db,
+  Healer: 0x2ecc71,
+  DPS: 0xe74c3c,
+  Soporte: 0x9b59b6,
+  Montura: 0xf39c12,
+};
+
+const SLOT_LABELS: Record<string, string> = {
+  weapon: '⚔️ Arma',
+  offhand: '🛡️ Offhand',
+  head: '🪖 Cabeza',
+  chest: '👕 Pecho',
+  shoes: '👟 Pies',
+  cape: '🌊 Cape',
+  food: '🍖 Comida',
+  potion: '💊 Poción',
+  mount: '🐎 Montura',
+};
 
 interface SignupThreadRecord {
   postId: string;
@@ -89,7 +110,7 @@ export class EventSignupService {
     postId: string;
     eventName: string;
   }> {
-    const composition = this.resolveComposition(compositionKey);
+    const composition = await this.resolveComposition(compositionKey);
     const renderedComposition = await this.albionEmojisService.withGuildEmojis(
       composition,
       channel.guild,
@@ -133,7 +154,7 @@ export class EventSignupService {
     compositionKey: string,
     entryKey: string,
   ): Promise<SignupActionResult> {
-    const composition = this.resolveComposition(compositionKey);
+    const composition = await this.resolveComposition(compositionKey);
 
     if (this.isEventClosed(message)) {
       return { ok: false, message: '🔒 Las inscripciones están cerradas.' };
@@ -161,7 +182,19 @@ export class EventSignupService {
       userId,
     ]);
 
-    await this.updateSignupMessage(message, composition, participants, false);
+    try {
+      await this.updateSignupMessage(message, composition, participants, false);
+    } catch (error) {
+      this.logger.error(
+        'Error al actualizar el mensaje del evento:',
+        error as Error,
+      );
+      return {
+        ok: false,
+        message:
+          '❌ No pude actualizar el mensaje del evento. ¿El bot tiene permisos?',
+      };
+    }
 
     return { ok: true };
   }
@@ -171,7 +204,7 @@ export class EventSignupService {
     userId: string,
     compositionKey: string,
   ): Promise<SignupActionResult> {
-    const composition = this.resolveComposition(compositionKey);
+    const composition = await this.resolveComposition(compositionKey);
 
     if (this.isEventClosed(message)) {
       return { ok: false, message: '🔒 Las inscripciones están cerradas.' };
@@ -194,7 +227,7 @@ export class EventSignupService {
     userId: string,
     compositionKey: string,
   ): Promise<SignupActionResult> {
-    const composition = this.resolveComposition(compositionKey);
+    const composition = await this.resolveComposition(compositionKey);
     const metadata = this.extractMessageMetadata(message);
 
     if (!metadata.creatorUserId) {
@@ -385,10 +418,123 @@ export class EventSignupService {
     }.`;
   }
 
-  private resolveComposition(compositionKey?: string): EventComposition {
+  // ─── Build preview ───────────────────────────────────────────────────────────
+
+  /**
+   * Devuelve el entry de la composición por key, o undefined si no existe.
+   */
+  async findEntry(
+    compositionKey: string,
+    entryKey: string,
+  ): Promise<EventCompositionEntry | undefined> {
+    const composition = await this.resolveComposition(compositionKey);
+    return composition.entries.find((e) => e.key === entryKey);
+  }
+
+  /**
+   * Verifica si el evento está cerrado sin modificar estado.
+   */
+  checkIsEventClosed(message: Message): boolean {
+    return this.isEventClosed(message);
+  }
+
+  /**
+   * Verifica si el slot tiene capacidad disponible para el usuario.
+   * No modifica estado; solo retorna ok/error.
+   */
+  async checkEntryAvailability(
+    message: Message,
+    userId: string,
+    compositionKey: string,
+    entryKey: string,
+  ): Promise<SignupActionResult> {
+    if (this.isEventClosed(message)) {
+      return { ok: false, message: '🔒 Las inscripciones están cerradas.' };
+    }
+
+    const composition = await this.resolveComposition(compositionKey);
+    const entry = composition.entries.find((e) => e.key === entryKey);
+    if (!entry) {
+      return { ok: false, message: 'No encontré esa build en la composición.' };
+    }
+
+    const participants = this.extractParticipants(message, composition);
+    const entryParticipants = participants.get(entry.key) ?? [];
+    const alreadyInEntry = entryParticipants.includes(userId);
+
+    if (!alreadyInEntry && entryParticipants.length >= entry.capacity) {
+      return { ok: false, message: '❌ Esa build ya está llena.' };
+    }
+
+    return { ok: true };
+  }
+
+  /**
+   * Construye el embed de preview de una build para mostrar antes de confirmar.
+   * La imagen del arma se obtiene de la render API de Albion via emojiKey.
+   */
+  buildPreviewEmbed(entry: EventCompositionEntry): EmbedBuilder {
+    const label = entry.label ?? `${entry.role} — ${entry.build}`;
+    const color = ROLE_COLORS[entry.role] ?? 0x95a5a6;
+
+    const weaponImageUrl = entry.emojiKey
+      ? this.albionEmojisService.getWeaponRenderUrl(entry.emojiKey)
+      : null;
+
+    const embed = new EmbedBuilder()
+      .setTitle(`${entry.emoji ?? '🎯'} ${label}`)
+      .setColor(color)
+      .addFields({ name: '🎭 Rol', value: entry.role, inline: true });
+
+    const itemsText = this.buildItemsText(entry);
+    if (itemsText) {
+      embed.addFields({
+        name: '📋 Equipamiento',
+        value: itemsText,
+        inline: false,
+      });
+    } else {
+      embed.addFields({
+        name: '📋 Equipamiento',
+        value: '*Sin detalles aún. Consultá a un officer.*',
+        inline: false,
+      });
+    }
+
+    if (weaponImageUrl) {
+      embed.setThumbnail(weaponImageUrl);
+    }
+
+    embed.setFooter({ text: '¿Podés jugar esta build?' });
+
+    return embed;
+  }
+
+  private buildItemsText(entry: EventCompositionEntry): string {
+    if (!entry.buildItems || entry.buildItems.length === 0) return '';
+
+    return entry.buildItems
+      .map((item: BuildItem) => {
+        const slotLabel = item.slot
+          ? (SLOT_LABELS[item.slot] ?? item.slot)
+          : '•';
+        // Si tiene itemUniqueName, el nombre es un link clickeable a la imagen
+        const nameText = item.itemUniqueName
+          ? `[${item.name}](https://render.albiononline.com/v1/item/${item.itemUniqueName}.png)`
+          : `**${item.name}**`;
+        return `${slotLabel}: ${nameText}`;
+      })
+      .join('\n');
+  }
+
+  // ─── Internals ───────────────────────────────────────────────────────────────
+
+  private async resolveComposition(
+    compositionKey?: string,
+  ): Promise<EventComposition> {
     const composition = compositionKey
-      ? this.eventsService.findCompositionByKey(compositionKey)
-      : this.eventsService.getDefaultComposition();
+      ? await this.eventsService.findCompositionByKey(compositionKey)
+      : await this.eventsService.getDefaultComposition();
 
     if (!composition) {
       throw new Error(`Composición no encontrada: ${compositionKey}`);

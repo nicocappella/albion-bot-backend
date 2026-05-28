@@ -46,7 +46,7 @@ export class AlbionEmojisService {
 
     try {
       const emojis = await guild.emojis.fetch();
-      const entries = composition.entries.map((entry) =>
+      const entries = composition?.entries?.map((entry) =>
         this.withGuildEmoji(entry, emojis),
       );
 
@@ -60,6 +60,24 @@ export class AlbionEmojisService {
       );
       return composition;
     }
+  }
+
+  /**
+   * Devuelve la URL pública de la imagen del arma correspondiente a un emojiKey.
+   * Usada para mostrar la imagen en los embeds de preview de build.
+   * Ej: 'mace_1h' → 'https://render.albiononline.com/v1/item/T8_MAIN_MACE.png'
+   */
+  getWeaponRenderUrl(emojiKey: string): string | null {
+    const definition = ALBION_WEAPON_EMOJIS_BY_KEY.get(emojiKey);
+    if (!definition) return null;
+    return this.buildRenderUrl(definition.itemUniqueName);
+  }
+
+  /**
+   * Devuelve la URL pública de la imagen de un item por su itemUniqueName directo.
+   */
+  getItemRenderUrl(itemUniqueName: string): string {
+    return this.buildRenderUrl(itemUniqueName);
   }
 
   async syncWeaponEmojis(
