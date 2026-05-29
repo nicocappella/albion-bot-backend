@@ -1,6 +1,9 @@
 import {
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Query,
   Redirect,
   UnauthorizedException,
@@ -37,5 +40,13 @@ export class AuthController {
       discordUsername: user.discordUsername,
       status: user.status,
     };
+  }
+
+  @Delete('logout')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  logout() {
+    // Session is destroyed by the BFF. This endpoint exists so the BFF has a
+    // server-acknowledged logout and any future token blacklisting can go here.
   }
 }

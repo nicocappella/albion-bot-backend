@@ -17,6 +17,7 @@ import { AlbionItemModule } from './items/albion-item.module';
 import { BuildModule } from './builds/build.module';
 import { CompositionsModule } from './compositions/compositions.module';
 import { AuthModule } from './auth/auth.module';
+import { GuildsModule } from './guilds/guilds.module';
 
 const env = process.env.NODE_ENV ?? 'development';
 const envBasePath = join(process.cwd(), 'src', 'config', 'envs');
@@ -81,6 +82,7 @@ const databaseEnabled = Boolean(process.env.MONGO_URI);
           DatabaseModule,
           UsersModule,
           AuthModule,
+          GuildsModule,
           AlbionItemModule,
           BuildModule,
           CompositionsModule,

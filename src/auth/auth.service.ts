@@ -11,6 +11,12 @@ export interface JwtPayload {
   discordId: string;
 }
 
+export interface ManageableGuild {
+  id: string;
+  name: string;
+  icon: string | null;
+}
+
 interface DiscordTokenResponse {
   access_token: string;
   token_type: string;
@@ -22,6 +28,16 @@ interface DiscordUser {
   global_name: string | null;
   avatar: string | null;
 }
+
+interface DiscordGuild {
+  id: string;
+  name: string;
+  icon: string | null;
+  permissions: string;
+}
+
+// ADMINISTRATOR (0x8) or MANAGE_GUILD (0x20)
+const MANAGE_PERMISSIONS = BigInt(0x8) | BigInt(0x20);
 
 @Injectable()
 export class AuthService {
@@ -38,23 +54,26 @@ export class AuthService {
       client_id: clientId,
       redirect_uri: callbackUrl,
       response_type: 'code',
-      scope: 'identify',
+      scope: 'identify guilds',
     });
     return `https://discord.com/oauth2/authorize?${params.toString()}`;
   }
 
-  async handleDiscordCallback(code: string): Promise<{ accessToken: string }> {
-    const discordUser = await this.exchangeCodeForUser(code);
-    const user = await this.upsertUser(discordUser);
+  async handleDiscordCallback(code: string): Promise<{ accessToken: string; manageableGuilds: ManageableGuild[] }> {
+    const { discordUser, accessToken: discordAccessToken } = await this.exchangeCode(code);
+    const [user, manageableGuilds] = await Promise.all([
+      this.upsertUser(discordUser),
+      this.fetchManageableGuilds(discordAccessToken),
+    ]);
     const payload: JwtPayload = { sub: user._id.toString(), discordId: discordUser.id };
-    return { accessToken: this.jwtService.sign(payload) };
+    return { accessToken: this.jwtService.sign(payload), manageableGuilds };
   }
 
   async findById(id: string): Promise<UserDocument | null> {
     return this.userModel.findById(id).exec();
   }
 
-  private async exchangeCodeForUser(code: string): Promise<DiscordUser> {
+  private async exchangeCode(code: string): Promise<{ discordUser: DiscordUser; accessToken: string }> {
     const clientId = this.config.getOrThrow<string>('DISCORD_CLIENT_ID');
     const clientSecret = this.config.getOrThrow<string>('DISCORD_CLIENT_SECRET');
     const callbackUrl = this.config.getOrThrow<string>('DISCORD_CALLBACK_URL');
@@ -71,11 +90,23 @@ export class AuthService {
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
     );
 
+    const discordAccessToken = tokenRes.data.access_token;
+
     const userRes = await axios.get<DiscordUser>('https://discord.com/api/users/@me', {
-      headers: { Authorization: `Bearer ${tokenRes.data.access_token}` },
+      headers: { Authorization: `Bearer ${discordAccessToken}` },
     });
 
-    return userRes.data;
+    return { discordUser: userRes.data, accessToken: discordAccessToken };
+  }
+
+  private async fetchManageableGuilds(discordAccessToken: string): Promise<ManageableGuild[]> {
+    const res = await axios.get<DiscordGuild[]>('https://discord.com/api/users/@me/guilds', {
+      headers: { Authorization: `Bearer ${discordAccessToken}` },
+    });
+
+    return res.data
+      .filter((g) => (BigInt(g.permissions) & MANAGE_PERMISSIONS) !== BigInt(0))
+      .map((g) => ({ id: g.id, name: g.name, icon: g.icon }));
   }
 
   private async upsertUser(discordUser: DiscordUser): Promise<UserDocument> {

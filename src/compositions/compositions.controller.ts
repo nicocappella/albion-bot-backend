@@ -36,7 +36,8 @@ export class CompositionsController {
 
   @Put(':key')
   update(@Param('key') key: string, @Body() body: UpdateCompositionDto) {
-    return this.compositionsService.upsert({ key, ...body });
+    body.key = key;
+    return this.compositionsService.upsert(body);
   }
 
   @Delete(':key')

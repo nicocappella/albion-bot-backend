@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsEnum,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -9,6 +10,11 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import type { BuildItemSlot } from '../../events/event-composition';
+
+const BUILD_ITEM_SLOTS: BuildItemSlot[] = [
+  'weapon', 'offhand', 'head', 'chest', 'shoes', 'cape', 'food', 'potion', 'mount',
+];
 
 class BuildItemDto {
   @IsString()
@@ -20,8 +26,8 @@ class BuildItemDto {
   itemUniqueName?: string;
 
   @IsOptional()
-  @IsString()
-  slot?: string;
+  @IsEnum(BUILD_ITEM_SLOTS)
+  slot?: BuildItemSlot;
 }
 
 class CompositionEntryDto {
