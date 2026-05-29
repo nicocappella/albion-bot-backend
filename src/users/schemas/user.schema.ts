@@ -13,6 +13,12 @@ export class User {
   @Prop({ required: true, trim: true })
   displayName!: string;
 
+  @Prop({ lowercase: true, sparse: true, trim: true, unique: true })
+  email?: string;
+
+  @Prop({ select: false })
+  passwordHash?: string;
+
   @Prop({ trim: true, sparse: true, unique: true })
   discordUserId?: string;
 

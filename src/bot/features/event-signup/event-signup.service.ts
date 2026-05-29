@@ -94,7 +94,7 @@ export class EventSignupService {
     }
     parts.push(timeRaw);
 
-    return parseEventoArgsUTC(`crear-evento ${parts.join(' | ')}`);
+    return parseEventoArgsUTC(`event ${parts.join(' | ')}`);
   }
 
   buildEventName(lugar: string, utcLabel: string): string {

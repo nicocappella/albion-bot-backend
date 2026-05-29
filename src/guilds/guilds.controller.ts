@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  ForbiddenException,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { GuildsService } from './guilds.service';
 import { RegisterGuildDto } from './dto/register-guild.dto';
 import { UpdateAllowedRolesDto } from './dto/update-allowed-roles.dto';
@@ -13,11 +22,13 @@ export class GuildsController {
 
   @Post()
   register(@CurrentUser() user: UserDocument, @Body() dto: RegisterGuildDto) {
+    this.ensureDiscordLinked(user);
     return this.guildsService.register(user._id.toString(), dto);
   }
 
   @Get()
   findMine(@CurrentUser() user: UserDocument) {
+    this.ensureDiscordLinked(user);
     return this.guildsService.findByUser(user._id.toString());
   }
 
@@ -27,6 +38,17 @@ export class GuildsController {
     @Param('id') guildId: string,
     @Body() dto: UpdateAllowedRolesDto,
   ) {
-    return this.guildsService.updateAllowedRoles(guildId, user._id.toString(), dto);
+    this.ensureDiscordLinked(user);
+    return this.guildsService.updateAllowedRoles(
+      guildId,
+      user._id.toString(),
+      dto,
+    );
+  }
+
+  private ensureDiscordLinked(user: UserDocument) {
+    if (!user.discordUserId) {
+      throw new ForbiddenException('Discord account must be linked first.');
+    }
   }
 }

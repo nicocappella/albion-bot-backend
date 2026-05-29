@@ -130,27 +130,22 @@ export class EventSignupComponents {
         entryKey,
       );
 
-      if (result.ok) {
-        // Reemplazar el preview por confirmación y cerrar el ephemeral
-        await interaction.editReply({
-          content: '✅ ¡Te inscribiste correctamente! Revisá el mensaje del evento.',
-          embeds: [],
-          components: [],
-        });
-      } else {
-        await interaction.followUp({
-          content: result.message ?? '❌ No se pudo completar la inscripción.',
-          ephemeral: true,
-        });
-      }
+      await interaction.editReply({
+        content: result.ok
+          ? '✅ ¡Te inscribiste correctamente! Revisá el mensaje del evento.'
+          : (result.message ?? '❌ No se pudo completar la inscripción.'),
+        embeds: [],
+        components: [],
+      });
     } catch (error) {
       this.logger.error(
         'Error confirmando inscripción desde preview',
         error as Error,
       );
-      await interaction.followUp({
+      await interaction.editReply({
         content: '❌ Ocurrió un error al inscribirse. Intentá de nuevo.',
-        ephemeral: true,
+        embeds: [],
+        components: [],
       });
     }
   }
@@ -159,19 +154,14 @@ export class EventSignupComponents {
   async onPreviewCancel(
     @Context() [interaction]: ButtonContext,
   ): Promise<void> {
-    // Solo cierra el ephemeral sin hacer nada
-    await interaction.deferUpdate();
+    await interaction.update({ content: 'Selección cancelada.', embeds: [], components: [] });
   }
 
   // ─── Botones del evento ───────────────────────────────────────────────────────
 
   @Button('event-signup/change/:compositionKey')
   async onChangeSlot(@Context() [interaction]: ButtonContext): Promise<void> {
-    await interaction.reply({
-      content:
-        'Usá el selector del mensaje para elegir otra build disponible. Si ya estabas anotado, te mueve automáticamente.',
-      ephemeral: true,
-    });
+    await interaction.deferUpdate();
   }
 
   @Button('event-signup/leave/:compositionKey')

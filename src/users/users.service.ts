@@ -12,6 +12,7 @@ import { User, UserDocument, UserStatus } from './schemas/user.schema';
 export interface UserResponse {
   id: string;
   displayName: string;
+  email?: string;
   discordUserId?: string;
   discordUsername?: string;
   status: UserStatus;
@@ -35,7 +36,10 @@ export class UsersService {
 
   async findAll(search?: string): Promise<UserResponse[]> {
     const filter = this.buildSearchFilter(search);
-    const users = await this.userModel.find(filter).sort({ displayName: 1 }).exec();
+    const users = await this.userModel
+      .find(filter)
+      .sort({ displayName: 1 })
+      .exec();
     return users.map((u) => this.toResponse(u));
   }
 
@@ -67,14 +71,24 @@ export class UsersService {
 
   private buildSearchFilter(search?: string): FilterQuery<User> {
     if (!search) return {};
-    const regex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-    return { $or: [{ displayName: regex }, { discordUsername: regex }, { discordUserId: regex }] };
+    const regex = new RegExp(
+      search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+      'i',
+    );
+    return {
+      $or: [
+        { displayName: regex },
+        { discordUsername: regex },
+        { discordUserId: regex },
+      ],
+    };
   }
 
   private toResponse(user: UserDocument): UserResponse {
     return {
       id: user._id.toString(),
       displayName: user.displayName,
+      email: user.email,
       discordUserId: user.discordUserId,
       discordUsername: user.discordUsername,
       status: user.status,

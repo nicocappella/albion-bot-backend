@@ -8,6 +8,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { User, UserSchema } from '../users/schemas/user.schema';
+import { Guild, GuildSchema } from '../guilds/guild.schema';
 
 @Module({
   imports: [
@@ -17,10 +18,16 @@ import { User, UserSchema } from '../users/schemas/user.schema';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.getOrThrow<string>('JWT_SECRET'),
-        signOptions: { expiresIn: (config.get<string>('JWT_EXPIRES_IN') ?? '7d') as StringValue },
+        signOptions: {
+          expiresIn: (config.get<string>('JWT_EXPIRES_IN') ??
+            '7d') as StringValue,
+        },
       }),
     }),
-    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    MongooseModule.forFeature([
+      { name: User.name, schema: UserSchema },
+      { name: Guild.name, schema: GuildSchema },
+    ]),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
